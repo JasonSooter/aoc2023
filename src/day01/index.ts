@@ -29,40 +29,41 @@ const part2 = (rawInput: string) => {
    * 4. Sum all numbers
    */
 
-  // return input.split("\n").reduce((acc, curr) => {
-  //   const firstNumberReplaced = curr
-  //     .replace(/(one)/, "1")
-  //     .replace(/(two)/, "2")
-  //     .replace(/(three)/, "3")
-  //     .replace(/(four)/, "4")
-  //     .replace(/(five)/, "5")
-  //     .replace(/(six)/, "6")
-  //     .replace(/(seven)/, "7")
-  //     .replace(/(eight)/, "8")
-  //     .replace(/(nine)/, "9")
-  //     .replace(/\D/, "");
-  //   const lastNumberReplaced = curr
-  //     .replace(/(one)/, "1")
-  //     .replace(/(two)/, "2")
-  //     .replace(/(three)/, "3")
-  //     .replace(/(four)/, "4")
-  //     .replace(/(five)/, "5")
-  //     .replace(/(six)/, "6")
-  //     .replace(/(seven)/, "7")
-  //     .replace(/(eight)/, "8")
-  //     .replace(/(nine)/, "9")
-  //     .replace(/\D/, "");
+  return input.split("\n").reduce((acc, curr) => {
+    /**
+     * TIL: Use Positive Lookahead to match all numbers
+     * - including overlapping number words like `twone`
+     * - https://stackoverflow.com/questions/20833295/how-can-i-match-overlapping-strings-with-regex
+     */
+    const numRegex =
+      /(?=(one|two|three|four|five|six|seven|eight|nine|[1-9]))/g;
+    const numArray = Array.from(curr.matchAll(numRegex), (match) => match[1]);
+    const firstAndLastDigit = [numArray[0], numArray[numArray.length - 1]];
 
-  //   const firstDigit = firstNumberReplaced.slice(0, 1);
-  //   const lastDigit = lastNumberReplaced.slice(-1);
-  //   const firstAndLastDigit = `${firstDigit}${lastDigit}`;
-  //   return acc + parseInt(firstAndLastDigit); }, 0);
-  return;
+    const renamed = firstAndLastDigit.map((item) => {
+      if (item === "one") return "1";
+      if (item === "two") return "2";
+      if (item === "three") return "3";
+      if (item === "four") return "4";
+      if (item === "five") return "5";
+      if (item === "six") return "6";
+      if (item === "seven") return "7";
+      if (item === "eight") return "8";
+      if (item === "nine") return "9";
+      return item;
+    });
+
+    return acc + parseInt(renamed.join(""));
+  }, 0);
 };
 
 run({
   part1: {
     tests: [
+      {
+        input: "fivepqxlpninevh2xxsnsgg63pbvdnqptmg",
+        expected: 23,
+      },
       {
         input: inputFile,
         expected: 53651,
@@ -73,8 +74,24 @@ run({
   part2: {
     tests: [
       {
+        input: "fivepqxlpninevh2xxsnsgg63pbvdnqptmg",
+        expected: 53,
+      },
+      {
         input: inputFile,
-        expected: 53148,
+        expected: 53894,
+      },
+      {
+        input: "649twomktwonebx", // Overlapping two and one
+        expected: 61,
+      },
+      {
+        input: "sbglrkhrhrfldkftzfknblj1twonemm", // Overlapping two and one
+        expected: 11,
+      },
+      {
+        input: "sixtqsmcrseveninenblqqnjgx", // Overlapping seven and nine
+        expected: 69,
       },
     ],
     solution: part2,
