@@ -1,24 +1,28 @@
 import run from "aocrunner";
 import { readFileSync } from "fs";
+import _ from "lodash";
 const inputFile = readFileSync("./src/day03/input.txt", "utf8");
 
 type SymbolLocation = {
   symbol: string;
   index: number;
+  line: number;
 };
 
 type SymbolLocations = {
   [key: string]: Array<SymbolLocation>;
 };
 
+type NumberLocation = {
+  number: string;
+  index: number;
+  length: number;
+  startRange: number;
+  endRange: number;
+};
+
 type NumberLocations = {
-  [key: string]: Array<{
-    number: string;
-    index: number;
-    length: number;
-    startRange: number;
-    endRange: number;
-  }>;
+  [key: string]: Array<NumberLocation>;
 };
 
 const parseInput = (rawInput: string) => rawInput;
@@ -81,8 +85,115 @@ const part1 = (rawInput: string) => {
 
 const part2 = (rawInput: string) => {
   const input = parseInput(rawInput);
-  return;
+
+  const symbolLocations: SymbolLocations = input
+    .split("\n")
+    .reduce((acc, line, index) => {
+      const symbols = Array.from(line.matchAll(/\*/g)).map((match) => ({
+        symbol: match[0],
+        index: match.index,
+        line: index,
+      }));
+
+      return { ...acc, [index]: [...symbols] };
+    }, {});
+
+  const numberLocations: NumberLocations = input
+    .split("\n")
+    .reduce((acc, line, index) => {
+      const numbers = Array.from(line.matchAll(/\d+/g)).map((match) => {
+        if (match.index === undefined) return;
+        return {
+          number: match[0],
+          index: match.index,
+          length: match[0].length,
+          startRange: match.index - 1,
+          endRange: match.index + match[0].length + 1,
+        };
+      });
+
+      return { ...acc, [index]: [...numbers] };
+    }, {});
+
+  const beforeResult = Object.values(numberLocations).reduce(
+    (acc, number, currentIndex) => {
+      const adjacentNumbers = number.reduce((acc, numberLocation) => {
+        const before = asteriskAdjacentLocations(
+          symbolLocations[currentIndex - 1] ?? [],
+          numberLocation,
+        );
+        return _.mergeWith(acc, before, customizer);
+      }, {});
+
+      return { ...acc, ...adjacentNumbers };
+    },
+    {},
+  );
+
+  const currentResult = Object.values(numberLocations).reduce(
+    (acc, number, currentIndex) => {
+      const adjacentNumbers = number.reduce((acc, numberLocation) => {
+        const current = asteriskAdjacentLocations(
+          symbolLocations[currentIndex],
+          numberLocation,
+        );
+        return _.mergeWith(acc, current, customizer);
+      }, {});
+
+      return { ...acc, ...adjacentNumbers };
+    },
+    {},
+  );
+
+  const afterResult = Object.values(numberLocations).reduce(
+    (acc, number, currentIndex) => {
+      const adjacentNumbers = number.reduce((acc, numberLocation) => {
+        const after = asteriskAdjacentLocations(
+          symbolLocations[currentIndex + 1],
+          numberLocation,
+        );
+
+        return _.mergeWith(acc, after, customizer);
+      }, {});
+
+      return { ...acc, ...adjacentNumbers };
+    },
+    {},
+  );
+
+  const finalMerge = _.mergeWith(
+    _.mergeWith(beforeResult, currentResult, customizer),
+    afterResult,
+    customizer,
+  );
+
+  const values: Array<number[]> = Object.values(finalMerge);
+
+  return values.reduce(
+    (acc, arr) => (arr.length === 2 ? acc + arr[0] * arr[1] : acc),
+    0,
+  );
 };
+
+function customizer(objValue: any, srcValue: any) {
+  return _.isArray(objValue) ? objValue.concat(srcValue) : objValue;
+}
+
+function asteriskAdjacentLocations(
+  symbolLocationList: Array<SymbolLocation>,
+  numberLocation: NumberLocation,
+) {
+  return symbolLocationList?.reduce((acc, symbol) => {
+    const hasAdjacentAsterisk =
+      symbol.index >= numberLocation.startRange &&
+      symbol.index < numberLocation.endRange;
+    const key: string = `${symbol.line}|${symbol.index}`;
+
+    return hasAdjacentAsterisk
+      ? { ...acc, [key]: [parseInt(numberLocation.number)] }
+      : acc;
+  }, {});
+}
 
 run({
   part1: {
@@ -132,14 +243,35 @@ run({
   },
   part2: {
     tests: [
-      // {
-      //   input: inputFile,
-      //   expected: "",
-      // },
+      {
+        input: `
+467..114..
+...*......
+..35..633.
+......#...
+617*......
+.....+.58.
+..592.....
+......755.
+...$.*....
+.664.598..        
+        `,
+        expected: 467835,
+      },
+      {
+        input: `
+...712.996...
+......*......       
+        `,
+        expected: 709152,
+      },
+      {
+        input: inputFile,
+        expected: 76314915,
+      },
     ],
     solution: part2,
   },
   trimTestInputs: true,
   onlyTests: false,
 });
-
