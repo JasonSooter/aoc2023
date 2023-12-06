@@ -15,7 +15,7 @@
   "author": "functionalStoic",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^16.11.6",
+    "@types/node": "^20.0.0",
     "aocrunner": "^1.9.6",
     "prettier": "^2.8.0"
   },
