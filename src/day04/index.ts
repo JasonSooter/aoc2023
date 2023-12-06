@@ -1,5 +1,6 @@
 import run from "aocrunner";
 import _ from "lodash";
+
 const parseInput = (rawInput: string) => rawInput;
 
 const part1 = (rawInput: string) => {
@@ -26,25 +27,69 @@ const part1 = (rawInput: string) => {
       return currentIndex === 0 ? 1 : acc * 2;
     }, 0);
 
-    if (currentIndex === 2) {
-      console.log("winningNumbers", winningNumbers);
-      console.log("numbersIHave", numbersIHave);
-      console.log("winningNumbersArray", winningNumbersArray);
-      console.log("numbersIHaveArray", numbersIHaveArray);
-      console.log("intersection", intersection);
-      console.log("points", points);
-    }
-
     return acc + points;
   }, 0);
 
   return points;
 };
 
+type Card = {
+  cardNumber: string;
+  winningNumbers: Array<string>;
+  cardNumbers: Array<string>;
+};
+
+function checkHits(card: Card) {
+  return card.cardNumbers.reduce((acc, cardNumber) => {
+    return card.winningNumbers.includes(cardNumber) ? acc + 1 : acc;
+  }, 0);
+}
+
 const part2 = (rawInput: string) => {
   const input = parseInput(rawInput);
 
-  return;
+  /**
+   * Use regex with match groups to allow for
+   * destructuring each section of the line
+   * So much easier than splitting and trimming
+   * Regex is so powerful! I always love learning more about it
+   */
+  const lineRegex =
+    /^Card\s+(?<cardNumber>\d+):\s+(?<winningNums>.+)\|(?<cardNums>.+)$/;
+
+  const cards: Card[] = input.split("\n").map((line) => {
+    const match = line.match(lineRegex);
+    const { cardNumber, winningNums, cardNums } = match?.groups ?? {};
+    const parseNumsStr = (str: string) => str.trim().split(" ").filter(Boolean);
+
+    return {
+      cardNumber,
+      winningNumbers: parseNumsStr(winningNums),
+      cardNumbers: parseNumsStr(cardNums),
+    };
+  });
+
+  const cardInstances = cards.reduce<Record<string, number>>((acc, card) => {
+    return { ...acc, [card.cardNumber]: 1 };
+  }, {});
+
+  cards.forEach((card, i) => {
+    const hits: number = checkHits(card);
+
+    /**
+     * Create a new array that starts from the card after the current one
+     * and ends at the card that is hits cards after the current one,
+     * and then iterates over each nextCard in this new array.
+     */
+    cards.slice(i + 1, i + 1 + hits).forEach((nextCard) => {
+      cardInstances[nextCard.cardNumber] =
+        (cardInstances[nextCard.cardNumber] ?? 0) +
+        cardInstances[card.cardNumber];
+    });
+  });
+
+  // Return the Sum of all card instances
+  return Object.values(cardInstances).reduce((sum, val) => sum + val, 0);
 };
 
 run({
@@ -58,7 +103,7 @@ Card   3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1
 Card   4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
 Card   5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
 Card   6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
-        `,
+          `,
         expected: 13,
       },
       {
@@ -70,10 +115,17 @@ Card   6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
   },
   part2: {
     tests: [
-      // {
-      //   input: ``,
-      //   expected: "",
-      // },
+      {
+        input: `
+Card   1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
+Card   2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
+Card   3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1
+Card   4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
+Card   5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
+Card   6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
+        `,
+        expected: 30,
+      },
     ],
     solution: part2,
   },
